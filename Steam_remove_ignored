@@ -1,0 +1,49 @@
+(function() {
+    var PAUSE_INTERVAL = 500; //Wait for this many milliseconds between each request
+ 
+    function resetQueue() {
+        //Perform initial request
+        jQuery.get("https://store.steampowered.com/dynamicstore/userdata/", {t: new Date().getTime()}, function(data) {
+            var applist = Object.keys(data.rgIgnoredApps);
+            var totalItems = applist.length;
+            console.log(applist);
+ 
+            if (totalItems == 0) {
+                alert("There are no items in your Not Interested list.");
+                return;
+            }
+            var approval = confirm("About to remove " + totalItems + " games from your Not Interested list, proceed?");
+            if (!approval) {
+                return;
+            }
+            removeItem(0, applist);
+        }, "json").fail(function() {
+            console.error("There was an error retrieving your Discovery Queue");
+        });
+    }
+ 
+    function removeItem(i, applist) {
+        if (i >= applist.length) {
+            alert("All items cleared from Not Interested list.");
+            return;
+        }
+        
+        jQuery.ajax({
+            url: "https://store.steampowered.com/recommended/ignorerecommendation/", 
+            type: "POST",
+            data: {sessionid: g_sessionID, appid: applist[i], remove: 1, snr: "1_account_notinterested_"}, 
+            success: function() {
+                console.log((i + 1) + "/" + applist.length + " items removed");
+                setTimeout(function() {
+                    removeItem(i + 1, applist);
+                }, PAUSE_INTERVAL);
+            },
+            error: function() {
+                console.error("Request failed, your Steam session id is probably incorrect/invalid, reload the page and try again");
+            }
+        });
+    }
+ 
+    resetQueue();
+    return "Running...";
+})()
